@@ -18,16 +18,17 @@ const pool = new Pool({
 });
 
 // ── Middleware ──
+app.set('trust proxy', 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(session({
-  store: new PgSession({ pool, tableName: 'hub_sessions', createTableIfMissing: true }),
+  store: new PgSession({ pool, tableName: 'hub_sessions', createTableIfMissing: false }),
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000, sameSite: 'lax' }
+  cookie: { secure: process.env.NODE_ENV === 'production', httpOnly: true, maxAge: 24 * 60 * 60 * 1000, sameSite: 'lax' }
 }));
 
 // ── Auth middleware ──
@@ -45,6 +46,13 @@ async function initDB() {
   const client = await pool.connect();
   try {
     await client.query(`
+      CREATE TABLE IF NOT EXISTS hub_sessions (
+        sid VARCHAR NOT NULL PRIMARY KEY,
+        sess JSON NOT NULL,
+        expire TIMESTAMP(6) NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS hub_sessions_expire_idx ON hub_sessions (expire);
+
       CREATE TABLE IF NOT EXISTS hub_apps (
         id SERIAL PRIMARY KEY,
         app_key VARCHAR(50) UNIQUE NOT NULL,
