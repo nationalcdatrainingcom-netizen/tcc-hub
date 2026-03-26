@@ -678,8 +678,26 @@ async function deleteFavorite(id) {
 // ═══════════════════════════════════════════════
 function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
-// ── Auto-login check on load ──
-loadSession();
+// ── Auto-login check on load (runs once) ──
+let sessionChecked = false;
+(async function initApp() {
+  if (sessionChecked) return;
+  sessionChecked = true;
+  try {
+    const res = await fetch('/api/me');
+    if (res.ok) {
+      const data = await res.json();
+      currentUser = data.user;
+      userApps = data.apps;
+      userFavorites = data.favorites;
+      showHub();
+    } else {
+      showLogin();
+    }
+  } catch (e) {
+    showLogin();
+  }
+})();
 </script>
 </body>
 </html>
