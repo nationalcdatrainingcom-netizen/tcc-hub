@@ -345,6 +345,7 @@ function renderSidebar() {
 
 function renderSidebarApps() {
   const categories = [...new Set(userApps.map(a => a.category))];
+  const extApps = ['payroll','master-organizer','gsq','vision-center','msa-organizer','family-vault','gsrp-invoice','doc-organizer'];
   let html = '';
   for (const cat of categories) {
     html += `<div class="sb-cat">${CAT_ICONS[cat] || '📁'} ${cat}</div>`;
@@ -352,12 +353,14 @@ function renderSidebarApps() {
     for (const app of catApps) {
       const isOpen = openTabs.some(t => t.appKey === app.app_key);
       const isActive = openTabs.find(t => t.id === activeTabId)?.appKey === app.app_key;
+      const isExt = extApps.includes(app.app_key);
       let cls = 'sb-item';
       if (isActive) cls += ' active';
       else if (isOpen) cls += ' open-indicator';
-      html += `<button class="${cls}" onclick="openApp('${app.app_key}')" title="${esc(app.name)}">
+      html += `<button class="${cls}" onclick="openApp('${app.app_key}')" title="${esc(app.name)}${isExt ? ' (opens in new tab)' : ''}">
         <span class="icon">${app.icon}</span><span class="label">${esc(app.name)}</span>
-        ${isOpen && !isActive ? '<div class="sb-dot"></div>' : ''}
+        ${isExt ? '<span class="label" style="margin-left:auto;font-size:10px;color:#4A5A6A;flex-shrink:0">↗</span>' : ''}
+        ${isOpen && !isActive && !isExt ? '<div class="sb-dot"></div>' : ''}
       </button>`;
     }
   }
@@ -392,11 +395,32 @@ function toggleSidebar() {
 // TABS
 // ═══════════════════════════════════════════════
 function openApp(appKey) {
+  // Apps with their own login sessions or CSP restrictions can't embed in iframes —
+  // they open directly in a new browser tab instead
+  const externalOnly = [
+    'payroll',          // own session auth
+    'master-organizer', // CSP frame-ancestors blocks embedding
+    'gsq',              // own session auth
+    'vision-center',    // own session auth
+    'msa-organizer',    // own session auth
+    'family-vault',     // own session auth
+    'gsrp-invoice',     // own session auth
+    'doc-organizer',    // own session auth
+  ];
+  const isExternal = externalOnly.includes(appKey);
+
   const existing = openTabs.find(t => t.appKey === appKey);
   if (existing) { activateTab(existing.id); return; }
 
   const app = userApps.find(a => a.app_key === appKey);
   if (!app) return;
+
+  // External-only apps open directly in a new tab
+  if (isExternal) {
+    window.open(app.url, '_blank');
+    fetch('/api/log-app-open', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ appKey }) });
+    return;
+  }
 
   const id = 'tab-' + (++tabCounter);
   openTabs.push({ id, appKey, name: app.name, icon: app.icon, type: 'app', url: app.url });
@@ -422,6 +446,26 @@ function openApp(appKey) {
     <iframe src="${esc(app.url)}" class="app-iframe" title="${esc(app.name)}" allow="clipboard-write; clipboard-read"></iframe>
   `;
   document.getElementById('content-area').appendChild(pane);
+
+  // Detect iframe load failure — show fallback after timeout
+  const iframe = pane.querySelector('iframe');
+  let loaded = false;
+  iframe.onload = () => { loaded = true; };
+  setTimeout(() => {
+    if (!loaded || (iframe.contentDocument && iframe.contentDocument.body && iframe.contentDocument.body.innerHTML.length < 50)) {
+      // Likely blocked — show fallback
+      iframe.style.display = 'none';
+      const fallback = document.createElement('div');
+      fallback.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#F7F3EB;padding:40px;text-align:center;';
+      fallback.innerHTML = `
+        <span style="font-size:48px">${app.icon}</span>
+        <h2 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:#0A1E3C;margin:0">${esc(app.name)}</h2>
+        <p style="font-size:14px;color:#6B7280;max-width:400px;line-height:1.6">This app works best in its own window. Click below to open it.</p>
+        <a href="${esc(app.url)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;padding:14px 32px;background:linear-gradient(135deg,#0A1E3C,#1A3A5C);color:#E9C46A;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;box-shadow:0 4px 16px rgba(10,30,60,0.3)">Open ${esc(app.name)} ↗</a>
+      `;
+      pane.appendChild(fallback);
+    }
+  }, 5000);
 
   activateTab(id);
 
