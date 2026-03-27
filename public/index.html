@@ -345,7 +345,7 @@ function renderSidebar() {
 
 function renderSidebarApps() {
   const categories = [...new Set(userApps.map(a => a.category))];
-  const extApps = ['payroll','master-organizer','gsq','vision-center','msa-organizer','family-vault','gsrp-invoice','doc-organizer'];
+  const extApps = ['payroll','master-organizer','gsq','vision-center','msa-organizer','family-vault','doc-organizer'];
   let html = '';
   for (const cat of categories) {
     html += `<div class="sb-cat">${CAT_ICONS[cat] || '📁'} ${cat}</div>`;
@@ -404,7 +404,6 @@ function openApp(appKey) {
     'vision-center',    // own session auth
     'msa-organizer',    // own session auth
     'family-vault',     // own session auth
-    'gsrp-invoice',     // own session auth
     'doc-organizer',    // own session auth
   ];
   const isExternal = externalOnly.includes(appKey);
