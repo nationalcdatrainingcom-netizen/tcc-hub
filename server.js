@@ -213,6 +213,41 @@ async function initDB() {
     for (const [key, url] of urlUpdates) {
       await client.query('UPDATE hub_apps SET url = $1 WHERE app_key = $2', [url, key]);
     }
+
+    // ── Add new apps if they don't exist yet ──
+    const newApps = [
+      ['friday-report', "Director's Friday Report", 'Daily Operations', '📝', '#8B5CF6', 'https://forms.gle/1gT26D5eFxV2eVJy7', 'Weekly director report', 6],
+      ['time-off', 'Time Off Request', 'Daily Operations', '🏖️', '#059669', 'https://docs.google.com/forms/d/e/1FAIpQLScNauEJveUg2nwYDhOkk2rUFRHg1dixrRviluTEdreQa4vgIw/viewform?embedded=true', 'Request days off', 7],
+    ];
+    for (const a of newApps) {
+      const { rows: exists } = await client.query('SELECT id FROM hub_apps WHERE app_key = $1', [a[0]]);
+      if (!exists.length) {
+        const { rows: inserted } = await client.query(
+          'INSERT INTO hub_apps (app_key, name, category, icon, color, url, description, display_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id',
+          a
+        );
+        const newAppId = inserted[0].id;
+
+        // Friday Report: admins only (Mary + directors)
+        if (a[0] === 'friday-report') {
+          await client.query(`
+            INSERT INTO hub_user_apps (user_id, app_id)
+            SELECT id, $1 FROM hub_users WHERE role IN ('owner', 'director', 'hr')
+            ON CONFLICT DO NOTHING
+          `, [newAppId]);
+        }
+        // Time Off Request: all users
+        if (a[0] === 'time-off') {
+          await client.query(`
+            INSERT INTO hub_user_apps (user_id, app_id)
+            SELECT id, $1 FROM hub_users
+            ON CONFLICT DO NOTHING
+          `, [newAppId]);
+        }
+        console.log('✓ Added new app:', a[1]);
+      }
+    }
+
     console.log('✓ App URLs verified');
 
     console.log('✓ Database initialized');
