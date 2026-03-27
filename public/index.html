@@ -240,6 +240,9 @@ body{font-family:'DM Sans',sans-serif;overflow:hidden;height:100vh;width:100vw;b
       <button class="sb-item" id="sb-admin" style="display:none" onclick="openAdmin()">
         <span class="icon" style="font-size:14px">⚙️</span><span class="label" style="color:#6A7A8A">Admin</span>
       </button>
+      <button class="sb-item" onclick="showChangePassword()">
+        <span class="icon" style="font-size:14px">🔐</span><span class="label" style="color:#6A7A8A">Change Password</span>
+      </button>
       <button class="sb-item signout" onclick="logout()">
         <span class="icon" style="font-size:14px">🚪</span><span class="label">Sign Out</span>
       </button>
@@ -948,6 +951,79 @@ async function loadAdminActivity() {
     }
     el.innerHTML = html;
   } catch (e) { el.innerHTML = '<p style="color:#E76F51">Failed to load activity log</p>'; }
+}
+
+// ═══════════════════════════════════════════════
+// CHANGE PASSWORD
+// ═══════════════════════════════════════════════
+function showChangePassword() {
+  openModal(
+    '<div class="modal-header"><h3>Change Password</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>' +
+    '<div class="modal-body">' +
+      '<div class="form-group"><label class="form-label">Current Password</label><input class="form-input" id="cp-current" type="password" placeholder="Enter your current password"></div>' +
+      '<div class="form-group"><label class="form-label">New Password</label><input class="form-input" id="cp-new" type="password" placeholder="Enter new password"></div>' +
+      '<div class="form-group"><label class="form-label">Confirm New Password</label><input class="form-input" id="cp-confirm" type="password" placeholder="Confirm new password"></div>' +
+      '<div id="cp-message" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:8px"></div>' +
+    '</div>' +
+    '<div class="modal-footer">' +
+      '<button class="btn-outline" onclick="closeModal()">Cancel</button>' +
+      '<button class="admin-add-btn" onclick="submitChangePassword()">Update Password</button>' +
+    '</div>'
+  );
+}
+
+async function submitChangePassword() {
+  const current = document.getElementById('cp-current').value;
+  const newPass = document.getElementById('cp-new').value;
+  const confirm = document.getElementById('cp-confirm').value;
+  const msgEl = document.getElementById('cp-message');
+
+  if (!current || !newPass || !confirm) {
+    msgEl.style.display = 'block';
+    msgEl.style.background = '#FDE8E8';
+    msgEl.style.color = '#B03030';
+    msgEl.textContent = 'Please fill in all fields.';
+    return;
+  }
+  if (newPass !== confirm) {
+    msgEl.style.display = 'block';
+    msgEl.style.background = '#FDE8E8';
+    msgEl.style.color = '#B03030';
+    msgEl.textContent = 'New passwords do not match.';
+    return;
+  }
+  if (newPass.length < 4) {
+    msgEl.style.display = 'block';
+    msgEl.style.background = '#FDE8E8';
+    msgEl.style.color = '#B03030';
+    msgEl.textContent = 'Password must be at least 4 characters.';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/change-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword: current, newPassword: newPass })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      msgEl.style.display = 'block';
+      msgEl.style.background = '#FDE8E8';
+      msgEl.style.color = '#B03030';
+      msgEl.textContent = data.error || 'Failed to change password.';
+      return;
+    }
+    msgEl.style.display = 'block';
+    msgEl.style.background = '#E8F5ED';
+    msgEl.style.color = '#2D7A4A';
+    msgEl.textContent = 'Password updated successfully!';
+    setTimeout(() => closeModal(), 1500);
+  } catch (e) {
+    msgEl.style.display = 'block';
+    msgEl.style.background = '#FDE8E8';
+    msgEl.style.color = '#B03030';
+    msgEl.textContent = 'Connection error. Please try again.';
+  }
 }
 
 // ═══════════════════════════════════════════════
