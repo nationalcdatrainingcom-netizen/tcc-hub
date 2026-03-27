@@ -345,7 +345,7 @@ function renderSidebar() {
 
 function renderSidebarApps() {
   const categories = [...new Set(userApps.map(a => a.category))];
-  const extApps = ['payroll','master-organizer','gsq','vision-center','msa-organizer','family-vault','doc-organizer'];
+  const extApps = ['payroll','master-organizer','vision-center','msa-organizer','family-vault','doc-organizer'];
   let html = '';
   for (const cat of categories) {
     html += `<div class="sb-cat">${CAT_ICONS[cat] || '📁'} ${cat}</div>`;
@@ -398,14 +398,17 @@ function openApp(appKey) {
   // Apps with their own login sessions or CSP restrictions can't embed in iframes —
   // they open directly in a new browser tab instead
   const externalOnly = [
-    'payroll',          // own session auth
-    'master-organizer', // CSP frame-ancestors blocks embedding
-    'gsq',              // own session auth
+    'payroll',          // own session auth (SSO coming later)
+    'master-organizer', // CSP frame-ancestors blocks embedding (SSO coming later)
     'vision-center',    // own session auth
     'msa-organizer',    // own session auth
     'family-vault',     // own session auth
     'doc-organizer',    // own session auth
   ];
+
+  // Apps that support Hub SSO — token is appended to iframe URL
+  const ssoApps = ['gsq'];
+
   const isExternal = externalOnly.includes(appKey);
 
   const existing = openTabs.find(t => t.appKey === appKey);
@@ -421,6 +424,32 @@ function openApp(appKey) {
     return;
   }
 
+  // For SSO apps, fetch a token first then load with token
+  if (ssoApps.includes(appKey)) {
+    openSSOApp(app, appKey);
+    return;
+  }
+
+  // Regular embedded apps — load directly
+  openEmbeddedApp(app, appKey);
+}
+
+async function openSSOApp(app, appKey) {
+  try {
+    const res = await fetch('/api/sso-token');
+    const data = await res.json();
+    const sep = app.url.includes('?') ? '&' : '?';
+    const ssoUrl = app.url + sep + 'hub_token=' + data.token;
+    openEmbeddedApp(app, appKey, ssoUrl);
+  } catch (e) {
+    // If token fetch fails, fall back to opening without token
+    console.log('SSO token fetch failed, opening without token');
+    openEmbeddedApp(app, appKey);
+  }
+}
+
+function openEmbeddedApp(app, appKey, overrideUrl) {
+  const url = overrideUrl || app.url;
   const id = 'tab-' + (++tabCounter);
   openTabs.push({ id, appKey, name: app.name, icon: app.icon, type: 'app', url: app.url });
 
@@ -442,7 +471,7 @@ function openApp(appKey) {
       <div class="app-url-box"><span>${esc(app.url)}</span></div>
       <a href="${esc(app.url)}" target="_blank" rel="noopener noreferrer" class="app-popout" title="Open in new tab">↗</a>
     </div>
-    <iframe src="${esc(app.url)}" class="app-iframe" title="${esc(app.name)}" allow="clipboard-write; clipboard-read"></iframe>
+    <iframe src="${esc(url)}" class="app-iframe" title="${esc(app.name)}" allow="clipboard-write; clipboard-read"></iframe>
   `;
   document.getElementById('content-area').appendChild(pane);
 
