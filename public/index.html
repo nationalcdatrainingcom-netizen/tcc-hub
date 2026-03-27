@@ -345,7 +345,7 @@ function renderSidebar() {
 
 function renderSidebarApps() {
   const categories = [...new Set(userApps.map(a => a.category))];
-  const extApps = ['master-organizer','vision-center','msa-organizer','family-vault','doc-organizer'];
+  const extApps = ['vision-center','msa-organizer','family-vault','doc-organizer'];
   let html = '';
   for (const cat of categories) {
     html += `<div class="sb-cat">${CAT_ICONS[cat] || '📁'} ${cat}</div>`;
@@ -398,7 +398,6 @@ function openApp(appKey) {
   // Apps with their own login sessions or CSP restrictions can't embed in iframes —
   // they open directly in a new browser tab instead
   const externalOnly = [
-    'master-organizer', // CSP frame-ancestors blocks embedding (SSO coming later)
     'vision-center',    // own session auth
     'msa-organizer',    // own session auth
     'family-vault',     // own session auth
@@ -406,7 +405,7 @@ function openApp(appKey) {
   ];
 
   // Apps that support Hub SSO — token is appended to iframe URL
-  const ssoApps = ['gsq', 'payroll'];
+  const ssoApps = ['gsq', 'payroll', 'master-organizer'];
 
   const isExternal = externalOnly.includes(appKey);
 
