@@ -373,8 +373,7 @@ function openApp(appKey) {
   // Hub param apps — pass user identity as URL parameters
   if (hubParamApps.includes(appKey)) {
     const sep = app.url.includes('?') ? '&' : '?';
-    const params = 'hub_user=' + encodeURIComponent(currentUser.name) + '&hub_center=' + encodeURIComponent(currentUser.center || 'all') + '&hub_role=' + encodeURIComponent(currentUser.role);
-    openEmbeddedApp(app, appKey, app.url + sep + params);
+const params = 'hub_user=' + encodeURIComponent(currentUser.name) + '&hub_username=' + encodeURIComponent(currentUser.username || '') + '&hub_center=' + encodeURIComponent(currentUser.center || 'all') + '&hub_role=' + encodeURIComponent(currentUser.role);    openEmbeddedApp(app, appKey, app.url + sep + params);
     return;
   }
 
