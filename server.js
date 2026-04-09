@@ -208,7 +208,7 @@ async function initDB() {
     // ── URL corrections (runs every startup to keep URLs current) ──
     const urlUpdates = [
       ['inventory', 'https://nationalcdatrainingcom-netizen.github.io/tcc-inventory/'],
-      ['compliance', 'https://nationalcdatrainingcom-netizen.github.io/tcc-compliance/'],
+     ['compliance', 'https://tcc-compliance.onrender.com'],
     ];
     for (const [key, url] of urlUpdates) {
       await client.query('UPDATE hub_apps SET url = $1 WHERE app_key = $2', [url, key]);
