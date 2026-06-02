@@ -348,7 +348,7 @@ function openApp(appKey) {
     'doc-organizer',
   ];
   // Apps that support Hub SSO via JWT token
-  const ssoApps = ['gsq', 'payroll', 'master-organizer', 'staff-time'];
+  const ssoApps = ['gsq', 'payroll', 'master-organizer', 'staff-time', 'enrollment-staffing', 'center-health'];
 
   // Apps that get Hub identity via URL params (static GitHub Pages apps)
   const hubParamApps = ['compliance'];
@@ -365,7 +365,7 @@ function openApp(appKey) {
     return;
   }
 
-  if (ssoApps.includes(appKey)) {
+  if (ssoApps.includes(appKey) || (app.url && app.url.indexOf('enrollment-staffing.onrender.com') > -1)) {
     openSSOApp(app, appKey);
     return;
   }
